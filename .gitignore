@@ -1,0 +1,7 @@
+node_modules/
+dist/
+data/*.db*
+data/uploads/*
+!data/uploads/.gitkeep
+coverage/
+

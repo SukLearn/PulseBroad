@@ -1,0 +1,48 @@
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      BACKEND_PORT: 4000
+      DATABASE_PATH: ${DATABASE_PATH:-/data/monitor.db}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
+      MONITOR_INTERVAL_SECONDS: ${MONITOR_INTERVAL_SECONDS:-60}
+      RETENTION_DAYS: ${RETENTION_DAYS:-7}
+      CLEANUP_INTERVAL_SECONDS: ${CLEANUP_INTERVAL_SECONDS:-3600}
+      HTTP_TIMEOUT_MS: ${HTTP_TIMEOUT_MS:-10000}
+      MONITOR_CONCURRENCY: ${MONITOR_CONCURRENCY:-8}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Tbilisi}
+      TZ: ${APP_TIMEZONE:-Asia/Tbilisi}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - monitor-data:/data
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    cap_add:
+      - NET_RAW
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    environment:
+      TZ: ${APP_TIMEZONE:-Asia/Tbilisi}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  monitor-data:
