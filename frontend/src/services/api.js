@@ -20,6 +20,6 @@ export const api = {
   externalDetail: (id) => request(`/external-services/${id}`),
   createService: (body) => request('/services', { method: 'POST', body }),
   updateService: (id, body) => request(`/services/${id}`, { method: 'PUT', body }),
-  deleteService: (id) => request(`/services/${id}`, { method: 'DELETE' })
+  deleteService: (id) => request(`/services/${id}`, { method: 'DELETE' }),
+  checkService: (id) => request(`/services/${id}/check`, { method: 'POST' })
 };
-

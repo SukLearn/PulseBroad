@@ -4,23 +4,30 @@ import { checkService } from '../monitoring/monitoringService.js';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 
-const locks = new Set();
+const limit = pLimit(config.concurrency);
+const activeChecks = new Map();
 let timer;
 let stopped = false;
 
+export function queueServiceCheck(serviceId) {
+  const id = Number(serviceId);
+  if (activeChecks.has(id)) return activeChecks.get(id);
+  const check = limit(async () => {
+    const service = getDb().prepare('SELECT * FROM services WHERE id=? AND enabled=1').get(id);
+    if (!service) return null;
+    return checkService(service);
+  });
+  activeChecks.set(id, check);
+  void check.finally(() => activeChecks.delete(id)).catch(() => {});
+  return check;
+}
+
 export async function runMonitoringCycle() {
-  const services = getDb().prepare('SELECT * FROM services WHERE enabled=1').all();
-  const limit = pLimit(config.concurrency);
-  await Promise.allSettled(services.map((service) => limit(async () => {
-    if (locks.has(service.id)) {
-      logger.warn('Skipped overlapping service check', { serviceId: service.id });
-      return;
-    }
-    locks.add(service.id);
-    try { await checkService(service); }
-    catch (error) { logger.error('Service check failed unexpectedly', { serviceId: service.id, error: error.message }); }
-    finally { locks.delete(service.id); }
-  })));
+  const ids = getDb().prepare('SELECT id FROM services WHERE enabled=1').all();
+  const results = await Promise.allSettled(ids.map(({ id }) => queueServiceCheck(id)));
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') logger.error('Service check failed unexpectedly', { serviceId: ids[index].id, error: result.reason?.message });
+  });
 }
 
 export function startMonitorScheduler() {
@@ -41,4 +48,3 @@ export function stopMonitorScheduler() {
   stopped = true;
   clearTimeout(timer);
 }
-

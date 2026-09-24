@@ -6,7 +6,8 @@ export async function checkGoogle({ fetchImpl = fetch, timeoutMs = 10000 } = {})
   });
   if (!response.ok) throw new Error(`Google status feed returned HTTP ${response.status}`);
   const incidents = await response.json();
-  const active = Array.isArray(incidents) ? incidents.filter((incident) => !incident.end) : [];
+  if (!Array.isArray(incidents)) throw new Error('Invalid Google status feed');
+  const active = incidents.filter((incident) => !incident.end);
   if (!active.length) return { provider: 'Google Workspace', status: 'OPERATIONAL', message: 'All services available', checkedAt: new Date().toISOString() };
   const rank = { high: 3, medium: 2, low: 1 };
   active.sort((a, b) => (rank[b.severity] ?? 0) - (rank[a.severity] ?? 0));
@@ -17,4 +18,3 @@ export async function checkGoogle({ fetchImpl = fetch, timeoutMs = 10000 } = {})
   const summary = clean(primary.external_desc ?? primary.most_recent_update?.text).slice(0, 300);
   return { provider: 'Google Workspace', status, message: `${primary.service_name ?? 'Workspace'}: ${summary}`, checkedAt: new Date().toISOString() };
 }
-

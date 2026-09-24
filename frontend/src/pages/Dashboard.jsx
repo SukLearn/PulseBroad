@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Activity, AlertOctagon, ArrowRight, CheckCircle2, Clock3, RadioTower, Timer } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Activity, AlertOctagon, ArrowRight, CheckCircle2, Clock3, RadioTower, RotateCw, Timer } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api.js';
 import Loading from '../components/Loading.jsx';
@@ -25,10 +25,18 @@ function ServiceRow({ service, external = false }) {
 
 export default function Dashboard() {
   const [data, setData] = useState(null); const [error, setError] = useState('');
-  useEffect(() => { const load = () => api.dashboard().then(setData).catch((e) => setError(e.message)); load(); const timer = setInterval(load, 30000); return () => clearInterval(timer); }, []);
-  if (!data) return error ? <div className="empty"><h3>Backend unavailable</h3><p>{error}</p></div> : <Loading text="Loading system health…" />;
+  const [updatedAt, setUpdatedAt] = useState(null); const [refreshing, setRefreshing] = useState(false);
+  const load = useCallback(async () => {
+    try { setData(await api.dashboard()); setUpdatedAt(new Date()); setError(''); }
+    catch (reason) { setError(reason.message); }
+  }, []);
+  useEffect(() => { load(); const timer = setInterval(load, 30000); return () => clearInterval(timer); }, [load]);
+  async function refresh() { setRefreshing(true); await load(); setRefreshing(false); }
+  if (!data) return error ? <div className="empty"><h3>Backend unavailable</h3><p>{error}</p><button className="button secondary" onClick={refresh}>Try again</button></div> : <Loading text="Loading system health…" />;
+  const localHour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Tbilisi', hour: 'numeric', hourCycle: 'h23' }).format(new Date()));
   return <section>
-    <header className="dashboard-head"><div><span className="eyebrow">System overview</span><h1>Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}.</h1><p>Here’s what your infrastructure is doing right now.</p></div><div className="live-status"><span className="live-dot" /><div><b>Live monitoring active</b><small><Clock3 size={12} /> Updated {formatDate(new Date())}</small></div></div></header>
+    <header className="dashboard-head"><div><span className="eyebrow">System overview</span><h1>Good {localHour < 12 ? 'morning' : localHour < 18 ? 'afternoon' : 'evening'}.</h1><p>Here’s what your infrastructure is doing right now.</p></div><div className={`live-status ${error ? 'disconnected' : ''}`}><span className="live-dot" /><div><b>{error ? 'Connection interrupted' : 'Live monitoring active'}</b><small><Clock3 size={12} /> Updated {formatDate(updatedAt)}</small></div><button className="refresh-button" onClick={refresh} disabled={refreshing} aria-label="Refresh dashboard" title="Refresh dashboard"><RotateCw size={15} className={refreshing ? 'spinning' : ''} /></button></div></header>
+    {error && <div className="form-error" role="alert">Could not refresh dashboard: {error}. Showing the last successful update.</div>}
     <div className="summary-grid">{summaryCards(data.summary).map(([label, value, Icon, tone]) => <article className="summary-card" key={label}><span className={`summary-icon ${tone}`}><Icon size={19} /></span><small>{label}</small><strong>{value}</strong></article>)}</div>
     <div className="dashboard-columns">
       <div className="panel"><div className="panel-head"><div><span className="eyebrow">Private network</span><h2>Home services</h2></div><Link to="/home-services">View all <ArrowRight size={14} /></Link></div>
@@ -41,4 +49,3 @@ export default function Dashboard() {
     <div className="panel incidents-panel"><div className="panel-head"><div><span className="eyebrow">Availability log</span><h2>Recent incidents</h2></div><Link to="/incidents">Full history <ArrowRight size={14} /></Link></div><IncidentTable incidents={data.recentIncidents} compact /></div>
   </section>;
 }
-

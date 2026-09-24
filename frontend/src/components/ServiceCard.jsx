@@ -17,6 +17,7 @@ export default function ServiceCard({ service, onEdit, onDelete }) {
       <div><small>{ping ? 'Packet loss' : '24h uptime'}</small><strong>{ping ? metric(service.packet_loss, '%') : uptime(service.uptime_24h)}</strong></div>
       <div><small>{ping ? '24h uptime' : '7d uptime'}</small><strong>{ping ? uptime(service.uptime_24h) : uptime(service.uptime_7d)}</strong></div>
     </div>
+    {service.down_since && <div className="message-line outage-line"><Radio size={13} />Down since {formatDate(service.down_since, true)}</div>}
     {service.current_message && <div className="message-line"><Radio size={13} />{service.current_message}</div>}
     <div className="card-footer">
       <span><Clock3 size={13} />{formatDate(service.last_checked_at)}</span>
@@ -28,4 +29,3 @@ export default function ServiceCard({ service, onEdit, onDelete }) {
     </div>
   </article>;
 }
-

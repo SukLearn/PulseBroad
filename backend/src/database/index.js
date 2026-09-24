@@ -9,8 +9,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 let db;
 
 export function initializeDatabase(databasePath = config.databasePath, { seed = true } = {}) {
-  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
-  fs.mkdirSync(config.uploadDir, { recursive: true });
+  if (databasePath !== ':memory:') fs.mkdirSync(path.dirname(databasePath), { recursive: true });
   db = new Database(databasePath);
   db.pragma('foreign_keys = ON');
   db.pragma('busy_timeout = 5000');
@@ -48,4 +47,3 @@ function seedProviders() {
   });
   transaction();
 }
-

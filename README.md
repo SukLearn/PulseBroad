@@ -10,6 +10,8 @@ It supports three distinct monitor types:
 
 The backend records one result per cycle, opens a single incident when a target goes down, resolves it on recovery, limits concurrency, prevents overlapping checks for a service, and removes measurements older than seven days.
 
+Newly created or edited enabled services are checked immediately. The service details page also offers **Check now** for an on-demand backend check. Provider feed failures are shown as unknown and excluded from uptime percentages.
+
 ## Quick start with Docker
 
 Requirements: Docker Engine with Docker Compose and network/firewall access from the Docker host to the targets you want to monitor.
@@ -19,7 +21,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Open `http://SERVER-IP:3000`. The backend API is also published at `http://SERVER-IP:4000`; `GET /api/health` returns `{ "status": "ok" }`.
+Open `http://SERVER-IP:3001`. The backend API is published at `http://SERVER-IP:4001`; `GET /api/health` returns `{ "status": "ok" }`. Set `FRONTEND_PORT` and `BACKEND_PORT` in `.env` to other free host ports if needed. The containers keep their own ports (80 and 4000), so Nginx and the backend health check do not need to change when you change host ports.
 
 The named Docker volume `monitor-data` stores `/data/monitor.db` and `/data/uploads`, so database history and logos survive container recreation and restarts. Both containers use `restart: unless-stopped`. The backend receives `NET_RAW`, which is required for ICMP in the container.
 
@@ -37,8 +39,8 @@ Copy `.env.example` to `.env` and adjust as needed:
 
 | Variable | Default | Purpose |
 |---|---:|---|
-| `BACKEND_PORT` | `4000` | Published API port |
-| `FRONTEND_PORT` | `3000` | Published dashboard port |
+| `BACKEND_PORT` | `4001` | Published API port |
+| `FRONTEND_PORT` | `3001` | Published dashboard port |
 | `DATABASE_PATH` | `/data/monitor.db` | SQLite path inside the backend container |
 | `UPLOAD_DIR` | `/data/uploads` | Persistent logo directory |
 | `MONITOR_INTERVAL_SECONDS` | `60` | Time between scheduler cycles |
@@ -85,7 +87,7 @@ npm run install:all
 npm run dev
 ```
 
-For local development, set `DATABASE_PATH=../data/monitor.db` and `UPLOAD_DIR=../data/uploads` in the root `.env`. Vite runs on port 3000 and proxies `/api` and `/uploads` to Express on port 4000.
+For local development, the default Docker `/data` paths automatically map to this project's `data` folder. Vite uses `FRONTEND_PORT` and proxies `/api` and `/uploads` to the locally running Express server on `BACKEND_PORT`. Explicit custom database and upload paths are used as written.
 
 Useful commands:
 
@@ -103,6 +105,7 @@ Tests cover incident transitions, duplicate prevention during long outages, rete
 | `GET` | `/api/health` | Backend health |
 | `GET/POST` | `/api/services` | List or create services |
 | `GET/PUT/DELETE` | `/api/services/:id` | Read, update, or delete a service |
+| `POST` | `/api/services/:id/check` | Run or join a backend check now |
 | `GET` | `/api/services/:id/results?range=1h\|24h\|7d` | Aggregated graph points |
 | `GET` | `/api/services/:id/stats` | Uptime and response statistics |
 | `GET` | `/api/services/:id/incidents` | Service incidents |
@@ -133,4 +136,3 @@ data/uploads/            Local persistent data location
 ```
 
 SQLite uses foreign keys, WAL mode, a busy timeout, cascade deletion, and indexes on service/time and incident timestamps. A partial unique index enforces no more than one ongoing incident per service.
-

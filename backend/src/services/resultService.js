@@ -26,7 +26,7 @@ export function getStats(serviceId) {
     const since = new Date(Date.now() - seconds * 1000).toISOString();
     const row = db.prepare(`SELECT COUNT(*) AS total,
       SUM(CASE WHEN status IN ('UP','OPERATIONAL','DEGRADED','PARTIAL_OUTAGE','MAINTENANCE') THEN 1 ELSE 0 END) AS successful
-      FROM monitoring_results WHERE service_id=? AND checked_at>=?`).get(serviceId, since);
+      FROM monitoring_results WHERE service_id=? AND checked_at>=? AND status <> 'UNKNOWN'`).get(serviceId, since);
     stats[key] = row.total ? Number(((row.successful / row.total) * 100).toFixed(2)) : null;
   }
   const since = new Date(Date.now() - 604800000).toISOString();

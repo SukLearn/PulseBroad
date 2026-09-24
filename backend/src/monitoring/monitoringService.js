@@ -16,12 +16,14 @@ export async function checkService(service, dependencies = {}) {
     logger.warn('Monitor adapter failed', { serviceId: service.id, error: error.message });
     result = { checkedAt: new Date().toISOString(), status: 'UNKNOWN', errorMessage: 'Provider check failed' };
   }
-  persistResult(service, result);
-  return result;
+  return persistResult(service, result) ? result : null;
 }
 
 export function persistResult(service, result, database = getDb()) {
   const transaction = database.transaction(() => {
+    const current = database.prepare('SELECT address, monitor_type, provider_key, enabled FROM services WHERE id=?').get(service.id);
+    if (!current || !current.enabled || current.address !== service.address ||
+      current.monitor_type !== service.monitor_type || current.provider_key !== service.provider_key) return false;
     database.prepare(`INSERT INTO monitoring_results
       (service_id, checked_at, status, response_time, packets_sent, packets_received, packet_loss,
        minimum_latency, maximum_latency, average_latency, http_status, error_message)
@@ -35,10 +37,10 @@ export function persistResult(service, result, database = getDb()) {
       database.prepare('INSERT INTO provider_status(service_id, provider_status, message, checked_at) VALUES (?, ?, ?, ?)')
         .run(service.id, result.status, result.message ?? result.errorMessage ?? null, result.checkedAt);
     }
-    database.prepare(`UPDATE services SET current_status=?, current_message=?, last_checked_at=?, updated_at=? WHERE id=?`)
-      .run(result.status, result.message ?? result.errorMessage ?? null, result.checkedAt, result.checkedAt, service.id);
+    database.prepare('UPDATE services SET current_status=?, current_message=?, last_checked_at=? WHERE id=?')
+      .run(result.status, result.message ?? result.errorMessage ?? null, result.checkedAt, service.id);
     evaluateIncident(service, result, database);
+    return true;
   });
-  transaction();
+  return transaction();
 }
-

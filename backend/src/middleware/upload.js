@@ -5,10 +5,12 @@ import multer from 'multer';
 import { config } from '../config.js';
 import { AppError } from '../utils/errors.js';
 
-fs.mkdirSync(config.uploadDir, { recursive: true });
 const extensions = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp' };
 const storage = multer.diskStorage({
-  destination: config.uploadDir,
+  destination: (req, file, callback) => {
+    try { fs.mkdirSync(config.uploadDir, { recursive: true }); callback(null, config.uploadDir); }
+    catch (error) { callback(error); }
+  },
   filename: (req, file, callback) => callback(null, `${crypto.randomUUID()}${extensions[file.mimetype] ?? ''}`)
 });
 
@@ -31,4 +33,3 @@ export function verifyUploadedLogo(req, res, next) {
   }
   next();
 }
-

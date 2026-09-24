@@ -52,9 +52,9 @@ export function listServices({ category } = {}) {
     (SELECT mr.maximum_latency FROM monitoring_results mr WHERE mr.service_id=s.id ORDER BY mr.checked_at DESC LIMIT 1) AS maximum_latency,
     (SELECT mr.packet_loss FROM monitoring_results mr WHERE mr.service_id=s.id ORDER BY mr.checked_at DESC LIMIT 1) AS packet_loss,
     (SELECT ROUND(100.0 * SUM(CASE WHEN mr.status IN ('UP','OPERATIONAL','DEGRADED','PARTIAL_OUTAGE','MAINTENANCE') THEN 1 ELSE 0 END) / COUNT(*), 2)
-      FROM monitoring_results mr WHERE mr.service_id=s.id AND datetime(mr.checked_at) >= datetime('now','-24 hours')) AS uptime_24h,
+      FROM monitoring_results mr WHERE mr.service_id=s.id AND mr.status <> 'UNKNOWN' AND datetime(mr.checked_at) >= datetime('now','-24 hours')) AS uptime_24h,
     (SELECT ROUND(100.0 * SUM(CASE WHEN mr.status IN ('UP','OPERATIONAL','DEGRADED','PARTIAL_OUTAGE','MAINTENANCE') THEN 1 ELSE 0 END) / COUNT(*), 2)
-      FROM monitoring_results mr WHERE mr.service_id=s.id AND datetime(mr.checked_at) >= datetime('now','-7 days')) AS uptime_7d
+      FROM monitoring_results mr WHERE mr.service_id=s.id AND mr.status <> 'UNKNOWN' AND datetime(mr.checked_at) >= datetime('now','-7 days')) AS uptime_7d
     FROM services s ${where}
     ORDER BY CASE s.current_status WHEN 'DOWN' THEN 0 WHEN 'MAJOR_OUTAGE' THEN 0 WHEN 'DEGRADED' THEN 1 WHEN 'PARTIAL_OUTAGE' THEN 1 ELSE 2 END, s.name`;
   return category ? db.prepare(query).all(category) : db.prepare(query).all();
@@ -84,10 +84,14 @@ export function updateService(id, input, logoPath) {
   if (previous.monitor_type === 'STATUS_PAGE') throw new AppError(400, 'Built-in provider configuration cannot be edited');
   const data = validateService(input);
   const nextLogo = logoPath ?? previous.logo_path;
+  const targetChanged = previous.address !== data.address || previous.monitor_type !== data.monitor_type;
+  const currentStatus = !data.enabled ? 'DISABLED' : targetChanged || !previous.enabled ? 'UNKNOWN' : previous.current_status;
+  const currentMessage = currentStatus === 'UNKNOWN' || currentStatus === 'DISABLED' ? null : previous.current_message;
+  const lastCheckedAt = targetChanged ? null : previous.last_checked_at;
   getDb().prepare(`UPDATE services SET name=?, description=?, address=?, logo_path=?, monitor_type=?, category=?,
-    enabled=?, timeout_ms=?, current_status=CASE WHEN ?=0 THEN 'DISABLED' ELSE current_status END, updated_at=? WHERE id=?`).run(
+    enabled=?, timeout_ms=?, current_status=?, current_message=?, last_checked_at=?, updated_at=? WHERE id=?`).run(
       data.name, data.description, data.address, nextLogo, data.monitor_type, data.category,
-      data.enabled, data.timeout_ms ?? null, data.enabled, new Date().toISOString(), id
+      data.enabled, data.timeout_ms ?? null, currentStatus, currentMessage, lastCheckedAt, new Date().toISOString(), id
     );
   if (!data.enabled) {
     const endedAt = new Date().toISOString();

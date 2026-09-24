@@ -11,6 +11,7 @@ export async function checkAws({ fetchImpl = fetch, timeoutMs = 10000 } = {}) {
   if (!response.ok) throw new Error(`AWS health feed returned HTTP ${response.status}`);
   const xml = await response.text();
   const parsed = new XMLParser({ ignoreAttributes: false }).parse(xml);
+  if (!parsed?.rss?.channel) throw new Error('Invalid AWS health feed');
   const rawItems = parsed?.rss?.channel?.item ?? [];
   const items = Array.isArray(rawItems) ? rawItems : [rawItems];
   const recentCutoff = Date.now() - 24 * 60 * 60 * 1000;
@@ -23,4 +24,3 @@ export async function checkAws({ fetchImpl = fetch, timeoutMs = 10000 } = {}) {
   const text = String(active.title ?? active.description ?? 'AWS public service event').replace(/<[^>]*>/g, '').slice(0, 300);
   return { provider: 'AWS', status: /outage|unavailable/i.test(text) ? 'MAJOR_OUTAGE' : 'DEGRADED', message: text, checkedAt: new Date().toISOString() };
 }
-

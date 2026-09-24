@@ -18,7 +18,7 @@ services:
     volumes:
       - monitor-data:/data
     ports:
-      - "${BACKEND_PORT:-4000}:4000"
+      - "${BACKEND_PORT:-4001}:4000"
     cap_add:
       - NET_RAW
     healthcheck:
@@ -35,7 +35,7 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "${FRONTEND_PORT:-3000}:80"
+      - "${FRONTEND_PORT:-3001}:80"
     environment:
       TZ: ${APP_TIMEZONE:-Asia/Tbilisi}
     healthcheck:

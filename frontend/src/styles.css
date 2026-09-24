@@ -49,3 +49,36 @@ h1,h2,h3,p { margin-top:0; } h1,h2,h3 { font-family:ui-sans-serif,system-ui,sans
 @media(max-width:1150px){.summary-grid,.detail-summary{grid-template-columns:repeat(3,1fr)}.service-grid{grid-template-columns:repeat(2,minmax(260px,1fr))}.dashboard-columns{grid-template-columns:1fr}.provider-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:760px){.sidebar{transform:translateX(-100%);transition:.2s}.sidebar.open{transform:none}.scrim{position:fixed;inset:0;z-index:19;border:0;background:#0009}.main{margin-left:0;padding:28px 18px 50px}.mobile-menu{display:grid;place-items:center;width:38px;height:38px;border:1px solid var(--line);border-radius:9px;background:#12141b;color:#c7cbd5;margin-bottom:28px}.page-header,.dashboard-head{display:block}.page-header .button{width:100%;margin-top:22px}.live-status{width:max-content;margin-top:20px}.summary-grid,.detail-summary{grid-template-columns:repeat(2,1fr)}.summary-card:last-child{grid-column:span 2}.service-grid,.provider-grid{grid-template-columns:1fr}.service-row{grid-template-columns:auto minmax(80px,1fr) auto}.service-row .row-metric,.service-row>svg{display:none}.form-grid{grid-template-columns:1fr}.form-grid label{grid-column:1!important}.detail-hero{align-items:flex-start;flex-wrap:wrap}.detail-state{width:100%;margin:0;justify-items:start}.panel-head{align-items:flex-start;flex-wrap:wrap}.chart{height:260px}.filterbar{flex-wrap:wrap}.filterbar select{width:100%;margin:0}.incident-table th,.incident-table td{padding-left:13px;padding-right:13px}.provider-card{min-height:220px}}
 @media(max-width:430px){.summary-grid,.detail-summary{grid-template-columns:1fr}.summary-card:last-child{grid-column:auto}.metrics-grid{gap:7px}.metrics-grid>div+div{padding-left:7px}.segmented button{padding:6px 8px}.detail-hero .avatar.large{width:52px;height:52px}.detail-hero h1{font-size:25px}}
+
+/* Feedback and motion */
+.main > section{animation:page-arrive .38s ease-out both}
+.summary-card,.service-card,.provider-card,.panel{animation:card-arrive .42s ease-out both}
+.summary-grid > :nth-child(2),.service-grid > :nth-child(2),.provider-grid > :nth-child(2){animation-delay:45ms}
+.summary-grid > :nth-child(3),.service-grid > :nth-child(3),.provider-grid > :nth-child(3){animation-delay:90ms}
+.summary-grid > :nth-child(4),.service-grid > :nth-child(4){animation-delay:135ms}
+.summary-grid > :nth-child(5),.service-grid > :nth-child(5){animation-delay:180ms}
+.brand-mark{transition:transform .25s ease,box-shadow .25s ease}
+.brand:hover .brand-mark{transform:scale(1.08) rotate(-5deg);box-shadow:0 10px 28px rgba(133,110,250,.4)}
+.sidebar nav a svg{transition:transform .18s ease}
+.sidebar nav a:hover svg,.sidebar nav a.active svg{transform:translateX(2px)}
+.service-row,.panel-head>a,.back-link,.provider-card,.service-card{transition:color .2s ease,background-color .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s ease}
+.panel-head>a:hover,.back-link:hover{color:#c5bbff;transform:translateX(2px)}
+.button:active,.card-actions button:active,.refresh-button:active{transform:scale(.96)}
+.button:focus-visible,.refresh-button:focus-visible,.card-actions a:focus-visible,.card-actions button:focus-visible,.sidebar a:focus-visible,.segmented button:focus-visible{outline:2px solid #b6a9ff;outline-offset:3px}
+.live-dot{animation:live-pulse 2.5s ease-in-out infinite}
+.live-status.disconnected .live-dot{background:var(--red);box-shadow:0 0 0 4px rgba(255,109,122,.12);animation:none}
+.refresh-button{width:31px;height:31px;display:grid;place-items:center;flex:0 0 auto;color:#9da4b3;background:#20232d;border:1px solid #303442;border-radius:8px;cursor:pointer;transition:background .2s ease,color .2s ease,transform .2s ease}
+.refresh-button:hover{background:#2b2d3b;color:#fff}
+.refresh-button:disabled{opacity:.5;cursor:wait}
+.spinning{animation:spin .9s linear infinite}
+.check-button{margin-top:2px}
+.outage-line{color:#ff909a}
+.modal{animation:modal-arrive .25s ease-out both}
+.modal-backdrop{animation:fade-in .25s ease-out both}
+.form-error{margin-bottom:16px}
+@keyframes page-arrive{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes card-arrive{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes modal-arrive{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+@keyframes live-pulse{50%{box-shadow:0 0 0 7px rgba(75,212,160,.04)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}

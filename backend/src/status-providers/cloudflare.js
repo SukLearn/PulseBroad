@@ -6,6 +6,7 @@ export async function checkCloudflare({ fetchImpl = fetch, timeoutMs = 10000 } =
   });
   if (!response.ok) throw new Error(`Cloudflare status API returned HTTP ${response.status}`);
   const data = await response.json();
+  if (!data?.status?.indicator) throw new Error('Invalid Cloudflare status response');
   const incident = data.incidents?.find((item) => item.status !== 'resolved');
   const maintenance = data.scheduled_maintenances?.find((item) => item.status === 'in_progress');
   return {
@@ -14,4 +15,3 @@ export async function checkCloudflare({ fetchImpl = fetch, timeoutMs = 10000 } =
     checkedAt: new Date().toISOString()
   };
 }
-
